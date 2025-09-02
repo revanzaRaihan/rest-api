@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\API\ProductController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -7,4 +8,4 @@ use Illuminate\Support\Facades\Route;
 //     return $request->user();
 // })->middleware('auth:sanctum');
 
-Route::get('/products', [App\Http\Controllers\API\ProductController::class, 'index']);
+Route::apiResource('products', ProductController::class);
