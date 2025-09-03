@@ -12,26 +12,51 @@ use Illuminate\Http\Response;
 
 class ProductController extends Controller
 {
-    public function index(){
+    public function index()
+    {
         $products = Product::latest()->paginate(10);
         return response()->json(new ProcuctCollection($products), Response::HTTP_OK);
     }
 
-    public function store(ProductRequest $request) {
+    public function store(ProductRequest $request)
+    {
         $productData = Product::create($request->validated());
         return response()->json([
-            'status'     => 'true',
-            'message'    => 'produk berhasil ditambahkan',
-            'data'       => new ProductResource($productData)
+            'status' => 'true',
+            'message' => 'Produk berhasil ditambahkan!',
+            'data' => new ProductResource($productData)
         ], Response::HTTP_CREATED);
     }
-    public function show() {
-
+    public function show($id)
+    {
+        $productID = Product::FindOrFail($id);
+        return response()->json([
+            'status' => 'true',
+            'message' => 'Detail produk!',
+            'data' => new ProductResource($productID)
+        ], Response::HTTP_OK);
     }
-    public function update() {
+    public function update(ProductRequest $request, $id)
+    {
+        $productUpdate = Product::findOrFail($id);
+        $productUpdate->update($request->validated());
 
+        return response()->json([
+            'status' => 'true',
+            'message' => 'Data produk berhasil diupdate!',
+            'data' => new ProductResource($productUpdate)
+        ], Response::HTTP_OK);
     }
-    public function destroy() {
 
+
+    public function destroy(Product $product)
+    {
+        $product->delete();
+
+        return response()->json([
+            'status' => 'true',
+            'message' => 'Data produk berhasil dihapus!',
+            'data' => new ProductResource($product)
+        ], Response::HTTP_OK);
     }
 }
