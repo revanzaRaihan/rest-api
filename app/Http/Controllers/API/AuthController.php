@@ -47,6 +47,12 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
+
+        $request->validate([
+            'email' => 'required|email|max:255|filled',
+            'password' => 'required|string|min:6|filled'
+        ]);
+
         $credentials = $request->only('email', 'password');
 
         try {
@@ -65,7 +71,7 @@ class AuthController extends Controller
             ], 500);
         }
         return response()->json([
-            'status' => 'error',
+            'status' => 'success',
             'message' => 'Berhasil login',
             'data' => $this->respondWithToken($token)
         ]);
@@ -89,7 +95,7 @@ class AuthController extends Controller
         }
     }
 
-    public function resfresh(){
+    public function refresh(){
         try {
             $newToken = JWTAuth::refresh(JWTAuth::getToken());
 
