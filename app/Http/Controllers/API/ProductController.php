@@ -41,6 +41,8 @@ class ProductController extends Controller
         $productUpdate = Product::findOrFail($id);
         $productUpdate->update($request->validated());
 
+        $productUpdate->refresh();
+
         return response()->json([
             'status' => 'true',
             'message' => 'Data produk berhasil diupdate!',

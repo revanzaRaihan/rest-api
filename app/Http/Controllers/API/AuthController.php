@@ -118,7 +118,7 @@ class AuthController extends Controller
             $user = JWTAuth::parseToken()->authenticate();
 
             return response()->json([
-                'status' => 'error',
+                'status' => 'success',
                 'message' => 'User profile',
                 'data' => $user
             ]);
