@@ -8,57 +8,92 @@ use App\Http\Resources\ProcuctCollection;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use Illuminate\Http\Response;
-// use GuzzleHttp\Psr7\Response;
+use Illuminate\Support\Facades\Auth;
 
 class ProductController extends Controller
 {
     public function index()
     {
-        $products = Product::latest()->paginate(10);
-        return response()->json(new ProcuctCollection($products), Response::HTTP_OK);
+        $products = Product::with('user')->latest()->paginate(10);
+
+        return response()->json(
+            new ProductCollection($products),
+            Response::HTTP_OK
+        );
     }
 
     public function store(ProductRequest $request)
     {
-        $productData = Product::create($request->validated());
+        $validated = $request->validated();
+
+        $product = Product::create([
+            'user_id'     => Auth::id(),
+            'name'        => $validated['name'],
+            'price'       => $validated['price'],
+            'description' => $validated['description'],
+            'stock'       => $validated['stock'],
+        ]);
+
         return response()->json([
-            'status' => 'true',
-            'message' => 'Produk berhasil ditambahkan!',
-            'data' => new ProductResource($productData)
+            'status'  => true,
+            'message' => 'Product berhasil ditambahkan',
+            'data'    => new ProductResource($product),
         ], Response::HTTP_CREATED);
     }
+
     public function show($id)
     {
-        $productID = Product::FindOrFail($id);
+        $product = Product::with('user')->findOrFail($id);
+
         return response()->json([
-            'status' => 'true',
-            'message' => 'Detail produk!',
-            'data' => new ProductResource($productID)
+            'status'  => true,
+            'message' => 'Detail Product',
+            'data'    => new ProductResource($product),
         ], Response::HTTP_OK);
     }
+
     public function update(ProductRequest $request, $id)
     {
-        $productUpdate = Product::findOrFail($id);
-        $productUpdate->update($request->validated());
+        $product = Product::findOrFail($id);
+        $user    = Auth::user();
 
-        $productUpdate->refresh();
+        // 🔹 Seller hanya bisa update produk miliknya
+        if ($user->role === 'seller' && $product->user_id !== $user->id) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Unauthorized: kamu bukan pemilik produk ini',
+            ], Response::HTTP_FORBIDDEN);
+        }
+
+        $validated = $request->validated();
+        $product->update($validated);
 
         return response()->json([
-            'status' => 'true',
-            'message' => 'Data produk berhasil diupdate!',
-            'data' => new ProductResource($productUpdate)
+            'status'  => true,
+            'message' => 'Product berhasil di update',
+            'data'    => new ProductResource($product),
         ], Response::HTTP_OK);
     }
 
-
-    public function destroy(Product $product)
+    public function destroy($id)
     {
+        $product = Product::findOrFail($id);
+        $user    = Auth::user();
+
+        // 🔹 Seller hanya bisa hapus produk miliknya
+        if ($user->role === 'seller' && $product->user_id !== $user->id) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Unauthorized: kamu bukan pemilik produk ini',
+            ], Response::HTTP_FORBIDDEN);
+        }
+
+        // 🔹 Admin bisa hapus produk siapa pun
         $product->delete();
 
         return response()->json([
-            'status' => 'true',
-            'message' => 'Data produk berhasil dihapus!',
-            'data' => new ProductResource($product)
+            'status'  => true,
+            'message' => 'Product berhasil dihapus',
         ], Response::HTTP_OK);
     }
 }

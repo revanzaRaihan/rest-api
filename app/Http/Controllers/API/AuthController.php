@@ -17,7 +17,9 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
-            'password' => 'required|string|min:6|confirmed'
+            'password' => 'required|string|min:6|confirmed',
+            // Optional: izinkan input role jika ingin assign manual dari postman/frontend
+// 'role' => 'in:admin,seller,viewer'
         ]);
         if ($validator->fails()) {
             return response()->json([
@@ -30,28 +32,40 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => Hash::make($request->password)
+            'password' => Hash::make($request->password),
+            'role' => 'viewer', // default role saat register
+            // Atau jika kamu izinkan role dari request:
+            // 'role' => $request->role ?? 'viewer'
         ]);
 
         $token = JWTAuth::fromUser($user);
 
         return response()->json([
-            'status' => 'success',
-            'message' => 'User Berhasil Mendaftar',
+            'status' => 'Success',
+            'message' => 'User berhasil mendaftar',
             'data' => [
                 'user' => $user,
                 'token' => $this->respondWithToken($token)
             ]
         ], 201);
+
+
     }
 
     public function login(Request $request)
     {
-
-        $request->validate([
-            'email' => 'required|email|max:255|filled',
-            'password' => 'required|string|min:6|filled'
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email|filled',
+            'password' => 'required|string|min:6|filled',
         ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Email dan password harus diisi',
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
         $credentials = $request->only('email', 'password');
 
@@ -59,7 +73,7 @@ class AuthController extends Controller
             if (!$token = JWTAuth::attempt($credentials)) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Invalid credentials'
+                    'message' => 'Invalid credential'
                 ], 401);
 
             }
@@ -73,7 +87,18 @@ class AuthController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Berhasil login',
-            'data' => $this->respondWithToken($token)
+            'data' => array_merge(
+                $this->respondWithToken($token),
+                [
+                    'user' => [
+                        // 'id' => $user->id,
+                        // 'name' => $user->name,
+                        // 'email' => $user->email,
+                        // 'avatar' => $user->avatar ?? null,
+                        // 'role' => $user->role
+                    ]
+                ]
+            )
         ]);
     }
 
@@ -100,10 +125,10 @@ class AuthController extends Controller
             $newToken = JWTAuth::refresh(JWTAuth::getToken());
 
             return response()->json([
-            'status' => 'success',
-            'message' => 'Token telah diperbarui',
-            'data' => $this->respondWithToken($newToken)
-        ]);
+                'status' => 'success',
+                'message' => 'Token telah diperbarui',
+                'data' => $this->respondWithToken($newToken)
+            ]);
         } catch (JWTException $e) {
             return response()->json([
                 'status' => 'error',
@@ -120,7 +145,7 @@ class AuthController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'User profile',
-                'data' => $user
+                'data' => $user,
             ]);
         } catch (JWTException $e) {
             return response()->json([
@@ -135,7 +160,8 @@ class AuthController extends Controller
         return [
             'access_token' => $token,
             'token_type' => 'bearer',
-            'expired_in' => JWTAuth::factory()->getTTL() * 60,
+            'expires_in' => JWTAuth::factory()->getTTL() * 60,
+
         ];
     }
 }
