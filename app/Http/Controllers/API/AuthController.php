@@ -12,6 +12,9 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
+    // =========================
+    // REGISTER
+    // =========================
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -19,8 +22,9 @@ class AuthController extends Controller
             'email' => 'required|email|unique:users',
             'password' => 'required|string|min:6|confirmed',
             // Optional: izinkan input role jika ingin assign manual dari postman/frontend
-// 'role' => 'in:admin,seller,viewer'
+            // 'role' => 'in:admin,seller,viewer'
         ]);
+
         if ($validator->fails()) {
             return response()->json([
                 'status' => 'error',
@@ -41,17 +45,18 @@ class AuthController extends Controller
         $token = JWTAuth::fromUser($user);
 
         return response()->json([
-            'status' => 'Success',
+            'status' => 'success',
             'message' => 'User berhasil mendaftar',
             'data' => [
                 'user' => $user,
                 'token' => $this->respondWithToken($token)
             ]
         ], 201);
-
-
     }
 
+    // =========================
+    // LOGIN
+    // =========================
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -75,7 +80,6 @@ class AuthController extends Controller
                     'status' => 'error',
                     'message' => 'Invalid credential'
                 ], 401);
-
             }
         } catch (JWTException $e) {
             return response()->json([
@@ -84,6 +88,9 @@ class AuthController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+
+        $user = JWTAuth::user();
+
         return response()->json([
             'status' => 'success',
             'message' => 'Berhasil login',
@@ -91,21 +98,24 @@ class AuthController extends Controller
                 $this->respondWithToken($token),
                 [
                     'user' => [
-                        // 'id' => $user->id,
-                        // 'name' => $user->name,
-                        // 'email' => $user->email,
-                        // 'avatar' => $user->avatar ?? null,
-                        // 'role' => $user->role
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'avatar' => $user->avatar ?? null,
+                        'role' => $user->role
                     ]
                 ]
             )
         ]);
     }
 
+    // =========================
+    // LOGOUT
+    // =========================
     public function logout()
     {
         try {
-            JWTAuth::Invalidate(JWTAuth::getToken());
+            JWTAuth::invalidate(JWTAuth::getToken());
 
             return response()->json([
                 'status' => 'success',
@@ -120,7 +130,11 @@ class AuthController extends Controller
         }
     }
 
-    public function refresh(){
+    // =========================
+    // REFRESH TOKEN
+    // =========================
+    public function refresh()
+    {
         try {
             $newToken = JWTAuth::refresh(JWTAuth::getToken());
 
@@ -138,7 +152,11 @@ class AuthController extends Controller
         }
     }
 
-    public function me(){
+    // =========================
+    // GET PROFILE
+    // =========================
+    public function me()
+    {
         try {
             $user = JWTAuth::parseToken()->authenticate();
 
@@ -156,13 +174,15 @@ class AuthController extends Controller
         }
     }
 
-    public function respondWithToken($token){
+    // =========================
+    // HELPER: RESPOND TOKEN
+    // =========================
+    protected function respondWithToken($token)
+    {
         return [
             'access_token' => $token,
             'token_type' => 'bearer',
             'expires_in' => JWTAuth::factory()->getTTL() * 60,
-
         ];
     }
 }
-
