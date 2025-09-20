@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Product;
 use App\Models\Order;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class AdminController extends Controller
 {
@@ -19,6 +20,41 @@ class AdminController extends Controller
             'status'  => true,
             'message' => 'Daftar semua user',
             'data'    => $users
+        ]);
+    }
+
+    // 🔹 Ganti Role User
+    public function updateUserRole(Request $request, User $user)
+    {
+        $request->validate([
+            'role' => 'required|in:admin,seller,viewer',
+        ]);
+
+        $user->role = $request->role;
+        $user->save();
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Role user berhasil diubah',
+            'data'    => $user
+        ]);
+    }
+
+    // 🔹 Hapus User
+    public function destroyUser(User $user)
+    {
+        if (Auth::id() === $user->id) {
+    return response()->json([
+        'status'  => false,
+        'message' => 'Tidak bisa menghapus akun sendiri',
+    ], 403);
+}
+
+        $user->delete();
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'User berhasil dihapus',
         ]);
     }
 

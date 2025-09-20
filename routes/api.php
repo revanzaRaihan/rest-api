@@ -42,8 +42,10 @@ Route::middleware(['jwt', 'role:viewer'])->group(function () {
     Route::get('orders', [OrderController::class, 'myOrders']); // viewer's own orders
     Route::post('cart', [CartController::class, 'add']);        // add to cart
     Route::get('cart', [CartController::class, 'show']);        // view cart
+    Route::delete('cart/{id}', [CartController::class, 'remove']); // delete cart item
     Route::post('checkout', [CheckoutController::class, 'process']); // checkout
 });
+
 
 // 🔹 SELLER ROUTES (authenticated, role: seller)
 Route::middleware(['jwt', 'role:seller'])->prefix('seller')->group(function () {
@@ -58,13 +60,20 @@ Route::middleware(['jwt', 'role:seller'])->prefix('seller')->group(function () {
 Route::middleware(['jwt', 'role:admin'])->prefix('admin')->group(function () {
     Route::apiResource('products', ProductController::class)
         ->except(['index', 'show']); // admin manages all products
+
+    // 👇 User management
     Route::get('users', [AdminController::class, 'manageUsers']);
+    Route::put('users/{user}/role', [AdminController::class, 'updateUserRole']);
+    Route::delete('users/{user}', [AdminController::class, 'destroyUser']);
+
     Route::get('sellers', [AdminController::class, 'manageSellers']);
     Route::get('reports', [AdminController::class, 'reports']);
     Route::get('settings', [AdminController::class, 'settings']);
+
     Route::apiResource('posts', PostController::class)
         ->except(['index', 'show']); // admin manages posts
 });
+
 
 // 🔹 NOTIFICATIONS (all authenticated users)
 Route::middleware('jwt')->get('notifications', [NotificationController::class, 'index']);

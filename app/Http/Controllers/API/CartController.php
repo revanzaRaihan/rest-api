@@ -12,23 +12,22 @@ use Illuminate\Support\Facades\Auth;
 class CartController extends Controller
 {
     public function add(CartRequest $request)
-    {
-        $cart = Cart::updateOrCreate(
-            [
-                'user_id'    => Auth::id(),
-                'product_id' => $request->product_id,
-            ],
-            [
-                'quantity' => \Illuminate\Support\Facades\DB::raw('quantity + '.$request->quantity)
-            ]
-        );
+{
+    $cart = Cart::firstOrNew([
+        'user_id' => Auth::id(),
+        'product_id' => $request->product_id,
+    ]);
 
-        return response()->json([
-            'status'  => true,
-            'message' => 'Produk berhasil ditambahkan ke keranjang',
-            'data'    => new CartResource($cart),
-        ], Response::HTTP_CREATED);
-    }
+    $cart->quantity = ($cart->quantity ?? 0) + (int)$request->quantity;
+    $cart->save();
+
+    return response()->json([
+        'status'  => true,
+        'message' => 'Produk berhasil ditambahkan ke keranjang',
+        'data'    => new CartResource($cart),
+    ], Response::HTTP_CREATED);
+}
+
 
     public function show()
     {
