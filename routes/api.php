@@ -32,28 +32,33 @@ Route::prefix('auth')->group(function () {
 });
 
 // 🔹 PUBLIC ROUTES (accessible to everyone)
-Route::get('products', [ProductController::class, 'index']);   // list all products
-Route::get('products/{id}', [ProductController::class, 'show']); // product details
-Route::get('posts', [PostController::class, 'index']);           // list all posts
-Route::get('posts/{id}', [PostController::class, 'show']);      // post details
+Route::get('products', [ProductController::class, 'index']);        // list all products
+Route::get('products/{id}', [ProductController::class, 'show']);    // product details
+Route::get('posts', [PostController::class, 'index']);              // list all posts
+Route::get('posts/{id}', [PostController::class, 'show']);          // post details
 
 // 🔹 VIEWER ROUTES (authenticated, role: viewer)
 Route::middleware(['jwt', 'role:viewer'])->group(function () {
-    Route::get('orders', [OrderController::class, 'myOrders']); // viewer's own orders
-    Route::post('cart', [CartController::class, 'add']);        // add to cart
-    Route::get('cart', [CartController::class, 'show']);        // view cart
-    Route::delete('cart/{id}', [CartController::class, 'remove']); // delete cart item
-    Route::post('checkout', [CheckoutController::class, 'process']); // checkout
+    Route::get('orders', [OrderController::class, 'myOrders']);        // viewer's own orders
+    Route::post('cart', [CartController::class, 'add']);               // add to cart
+    Route::get('cart', [CartController::class, 'show']);               // view cart
+    Route::delete('cart/{id}', [CartController::class, 'remove']);     // delete cart item
+    Route::post('cart/clear', [CartController::class, 'clear']);       // clear cart
+    Route::post('checkout', [CheckoutController::class, 'process']);  // checkout
 });
-
 
 // 🔹 SELLER ROUTES (authenticated, role: seller)
 Route::middleware(['jwt', 'role:seller'])->prefix('seller')->group(function () {
     Route::get('dashboard', [SellerController::class, 'dashboard']);
-    Route::get('/products', [SellerController::class, 'products']);
+    Route::get('products', [SellerController::class, 'products']);
+    Route::get('orders', [SellerController::class, 'orders']);        // seller's own orders
+
+    // ✅ Tambahan: seller bisa menandai pesanan selesai
+    Route::post('orders/{id}/complete', [SellerController::class, 'completeOrder']);
+
+    // seller manages own products
     Route::apiResource('products', ProductController::class)
-        ->except(['index', 'show']); // seller manages own products
-    Route::get('orders', [OrderController::class, 'sellerOrders']); // orders related to seller
+        ->except(['index', 'show']);
 });
 
 // 🔹 ADMIN ROUTES (authenticated, role: admin)
@@ -61,19 +66,21 @@ Route::middleware(['jwt', 'role:admin'])->prefix('admin')->group(function () {
     Route::apiResource('products', ProductController::class)
         ->except(['index', 'show']); // admin manages all products
 
-    // 👇 User management
+    // User management
     Route::get('users', [AdminController::class, 'manageUsers']);
     Route::put('users/{user}/role', [AdminController::class, 'updateUserRole']);
     Route::delete('users/{user}', [AdminController::class, 'destroyUser']);
 
     Route::get('sellers', [AdminController::class, 'manageSellers']);
+
+    // ✅ Tambahan: admin bisa lihat laporan dari pesanan yang sudah selesai
     Route::get('reports', [AdminController::class, 'reports']);
+
     Route::get('settings', [AdminController::class, 'settings']);
 
     Route::apiResource('posts', PostController::class)
         ->except(['index', 'show']); // admin manages posts
 });
-
 
 // 🔹 NOTIFICATIONS (all authenticated users)
 Route::middleware('jwt')->get('notifications', [NotificationController::class, 'index']);

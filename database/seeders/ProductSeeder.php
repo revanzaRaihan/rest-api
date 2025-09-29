@@ -37,7 +37,7 @@ class ProductSeeder extends Seeder
         ];
 
         foreach ($products as $product) {
-            Product::create(array_merge($product, ['user_id' => 1])); // menambahkan user_id
+            Product::create(array_merge($product, ['user_id' => 2])); // menambahkan user_id
         }
     }
 }

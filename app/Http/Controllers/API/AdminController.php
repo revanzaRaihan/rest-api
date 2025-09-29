@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\OrderResource;
 use App\Models\User;
 use App\Models\Product;
 use App\Models\Order;
@@ -44,11 +45,11 @@ class AdminController extends Controller
     public function destroyUser(User $user)
     {
         if (Auth::id() === $user->id) {
-    return response()->json([
-        'status'  => false,
-        'message' => 'Tidak bisa menghapus akun sendiri',
-    ], 403);
-}
+            return response()->json([
+                'status'  => false,
+                'message' => 'Tidak bisa menghapus akun sendiri',
+            ], 403);
+        }
 
         $user->delete();
 
@@ -61,7 +62,9 @@ class AdminController extends Controller
     // 🔹 Kelola Seller
     public function manageSellers()
     {
-        $sellers = User::where('role', 'seller')->latest()->get();
+        $sellers = User::where('role', 'seller')
+            ->latest()
+            ->get();
 
         return response()->json([
             'status'  => true,
@@ -70,22 +73,34 @@ class AdminController extends Controller
         ]);
     }
 
-    // 🔹 Laporan singkat
+    // 🔹 Laporan lengkap
     public function reports()
     {
-        $totalUsers    = User::count();
-        $totalSellers  = User::where('role', 'seller')->count();
-        $totalProducts = Product::count();
-        $totalOrders   = Order::count();
+        $totalUsers     = User::count();
+        $totalSellers   = User::where('role', 'seller')->count();
+        $totalProducts  = Product::count();
+        $totalOrders    = Order::count();
+        $completedOrders = Order::where('status', 'completed')->count();
+        $revenue        = Order::where('status', 'completed')->sum('total');
+
+        // Ambil list order completed terbaru
+        $completedList = Order::with(['user', 'product'])
+            ->where('status', 'completed')
+            ->latest()
+            ->take(20)
+            ->get();
 
         return response()->json([
             'status'  => true,
             'message' => 'Ringkasan laporan',
             'data'    => [
-                'total_users'    => $totalUsers,
-                'total_sellers'  => $totalSellers,
-                'total_products' => $totalProducts,
-                'total_orders'   => $totalOrders,
+                'total_users'      => $totalUsers,
+                'total_sellers'    => $totalSellers,
+                'total_products'   => $totalProducts,
+                'total_orders'     => $totalOrders,
+                'completed_orders' => $completedOrders,
+                'revenue'          => $revenue,
+                'recent_completed' => OrderResource::collection($completedList),
             ]
         ]);
     }
